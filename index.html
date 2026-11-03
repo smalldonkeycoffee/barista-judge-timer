@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#151a20">
+<title>Barista Judge Timer</title>
+
+<link rel="manifest" href="./manifest.webmanifest">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: #151a20;
+  color: white;
+  font-family: Arial, "Malgun Gothic", sans-serif;
+}
+
+.app {
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+
+header {
+  text-align: center;
+  padding: 12px 0 22px;
+}
+
+header h1 {
+  font-size: 25px;
+  letter-spacing: 1px;
+  margin: 0 0 8px;
+}
+
+header p {
+  color: #b7c4ba;
+  margin: 5px;
+  font-size: 14px;
+}
+
+.section-title {
+  font-size: 15px;
+  color: #b7c4ba;
+  text-align: left;
+  margin: 16px 0 9px;
+}
+
+select {
+  width: 100%;
+  padding: 17px 12px;
+  border-radius: 12px;
+  background: #29332e;
+  color: white;
+  border: 1px solid #647569;
+  font-size: 17px;
+}
+
+.timer-box {
+  margin-top: 20px;
+  padding: 25px 12px;
+  background: #080e0a;
+  border: 2px solid #425c48;
+  border-radius: 20px;
+  text-align: center;
+}
+
+.status {
+  color: #a8c5ac;
+  font-size: 15px;
+}
+
+#clock {
+  font-family: Consolas, monospace;
+  font-size: clamp(76px, 20vw, 112px);
+  font-weight: bold;
+  color: #5cff91;
+  line-height: 1.2;
+  margin: 14px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+#stage {
+  font-size: 25px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+#message {
+  min-height: 28px;
+  color: #ffd36b;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.stage-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-top: 20px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  min-height: 58px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.stage-btn {
+  background: #354b3c;
+  color: white;
+  border: 2px solid transparent;
+}
+
+.stage-btn.active {
+  background: #d7eadb;
+  color: #17251a;
+  border: 2px solid #5cff91;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.start {
+  background: #278b4b;
+  color: white;
+}
+
+.pause {
+  background: #bd8728;
+  color: white;
+}
+
+.reset {
+  background: #555e67;
+  color: white;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.voice-test {
+  width: 100%;
+  margin-top: 12px;
+  background: #35414a;
+  color: white;
+  min-height: 48px;
+  font-size: 15px;
+}
+
+footer {
+  text-align: center;
+  margin-top: 28px;
+  padding-bottom: 20px;
+  color: #9da9a0;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+@media (max-width: 360px) {
+  body { padding: 10px; }
+  header h1 { font-size: 21px; }
+  button { font-size: 15px; }
+  #stage { font-size: 22px; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <h1>BARISTA JUDGE TIMER</h1>
+  <p>바리스타 심사 타이머</p>
+  <p>작은나귀커피 & 아카데미</p>
+</header>
+
+<div class="section-title">① 시험 유형 선택</div>
+
+<select id="category">
+  <option value="general">일반인 바리스타 2급</option>
+  <option value="senior">시니어 바리스타 2급</option>
+  <option value="development">청각 및 발달장애인 바리스타 2급</option>
+  <option value="visual">시각장애인 바리스타 2급</option>
+</select>
+
+<div class="timer-box">
+  <div class="status" id="status">시험 준비</div>
+  <div id="clock">10:00</div>
+  <div id="stage">준비단계</div>
+  <div id="message" aria-live="polite">
+    단계를 선택하고 시작하세요.
+  </div>
+</div>
+
+<div class="section-title">② 시험 단계 선택</div>
+
+<div class="stage-buttons">
+  <button class="stage-btn active" id="btn-prepare"
+    onclick="selectStage('prepare')">준비</button>
+
+  <button class="stage-btn" id="btn-demo"
+    onclick="selectStage('demo')">시연</button>
+
+  <button class="stage-btn" id="btn-finish"
+    onclick="selectStage('finish')">정리</button>
+</div>
+
+<div class="section-title">③ 타이머 조작</div>
+
+<div class="controls">
+  <button class="start" onclick="startTimer()">시작</button>
+  <button class="pause" onclick="pauseTimer()">일시정지</button>
+  <button class="reset" onclick="resetTimer()">초기화</button>
+</div>
+
+<button class="voice-test" onclick="testVoice()">
+  🔊 음성 안내 테스트
+</button>
+
+<footer>
+  사람 곁에 사람, 커피 곁에 사랑<br>
+  작은나귀커피 목동
+</footer>
+
+</div>
+
+<script>
+// 시험별 시간 설정 (초 단위)
+const settings = {
+  general: {
+    prepare: { total: 600, alerts: [300, 180, 60] },
+    demo:    { total: 600, alerts: [300, 180, 60] },
+    finish:  { total: 300, alerts: [60] }
+  },
+
+  senior: {
+    prepare: { total: 600, alerts: [300, 180, 60] },
+    demo:    { total: 600, alerts: [300, 180, 60] },
+    finish:  { total: 300, alerts: [60] }
+  },
+
+  development: {
+    prepare: { total: 600, alerts: [300, 180, 60] },
+    demo:    { total: 780, alerts: [390, 180, 60] },
+    finish:  { total: 300, alerts: [60] }
+  },
+
+  visual: {
+    prepare: { total: 600, alerts: [300, 180, 60] },
+    demo:    { total: 1080, alerts: [300, 180, 60] },
+    finish:  { total: 600, alerts: [] }
+  }
+};
+
+// 시험 유형 및 단계 이름
+const categoryNames = {
+  general: "일반인 바리스타 2급",
+  senior: "시니어 바리스타 2급",
+  development: "청각 및 발달장애인 바리스타 2급",
+  visual: "시각장애인 바리스타 2급"
+};
+
+const stageNames = {
+  prepare: "준비단계",
+  demo: "시연단계",
+  finish: "정리단계"
+};
+
+// 화면 요소 연결
+const clock = document.getElementById("clock");
+const stage = document.getElementById("stage");
+const message = document.getElementById("message");
+const status = document.getElementById("status");
+const category = document.getElementById("category");
+
+// 타이머 초기값
+let currentStage = "prepare";
+let total = 600;
+let remaining = 600;
+let timer = null;
+let running = false;
+let lastTime = 0;
+let announced = new Set();
+
+// 화면 시간 표시
+function updateClock() {
+  const min = Math.floor(remaining / 60);
+  const sec = remaining % 60;
+
+  clock.textContent =
+    String(min).padStart(2, "0") + ":" +
+    String(sec).padStart(2, "0");
+}
+
+// 음성 안내
+function speak(text) {
+  if (!("speechSynthesis" in window)) {
+    message.textContent = "이 브라우저는 음성 안내를 지원하지 않습니다.";
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "ko-KR";
+  utterance.rate = 0.9;
+  utterance.pitch = 1;
+
+  window.speechSynthesis.speak(utterance);
+}
+
+// 단계 선택
+function selectStage(selected) {
+  if (running) {
+    message.textContent = "일시정지 후 단계를 변경해 주세요.";
+    return;
+  }
+
+  currentStage = selected;
+
+  const config = settings[category.value][selected];
+
+  total = config.total;
+  remaining = total;
+  announced.clear();
+
+  stage.textContent = stageNames[selected];
+  message.textContent = "시작 버튼을 눌러주세요.";
+  status.textContent = "시험 준비";
+
+  document.querySelectorAll(".stage-btn")
+    .forEach(button => button.classList.remove("active"));
+
+  document.getElementById("btn-" + selected)
+    .classList.add("active");
+
+  updateClock();
+}
+
+// 타이머 시작
+function startTimer() {
+  if (running || remaining <= 0) return;
+
+  const isFirstStart = remaining === total;
+
+  running = true;
+  status.textContent = "시험 진행 중";
+
+  if (isFirstStart) {
+    speak(
+      categoryNames[category.value] + " " +
+      stageNames[currentStage] + " " +
+      formatTime(total) + " 시작하세요."
+    );
+  }
+
+  lastTime = Date.now();
+
+  timer = setInterval(() => {
+    const now = Date.now();
+    const elapsed = Math.floor((now - lastTime) / 1000);
+
+    if (elapsed < 1) return;
+
+    lastTime += elapsed * 1000;
+
+    const previousRemaining = remaining;
+    remaining = Math.max(0, remaining - elapsed);
+
+    updateClock();
+    checkAlerts(previousRemaining, remaining);
+
+    if (remaining === 0) {
+      finishTimer();
+    }
+  }, 200);
+}
+
+// 남은 시간 안내
+function checkAlerts(previous, current) {
+  const config = settings[category.value][currentStage];
+
+  config.alerts.forEach(alertTime => {
+    if (
+      previous > alertTime &&
+      current <= alertTime &&
+      !announced.has(alertTime)
+    ) {
+      announced.add(alertTime);
+
+      const text = formatTime(alertTime) + " 남았습니다.";
+
+      message.textContent = text;
+      speak(text);
+    }
+  });
+}
+
+// 시간 읽기
+function formatTime(seconds) {
+  const min = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+
+  if (sec === 0) return min + "분";
+
+  return min + "분 " + sec + "초";
+}
+
+// 일시정지
+function pauseTimer() {
+  running = false;
+
+  if (timer !== null) {
+    clearInterval(timer);
+    timer = null;
+  }
+
+  if (remaining > 0) {
+    status.textContent = "일시정지";
+  }
+
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+// 초기화
+function resetTimer() {
+  pauseTimer();
+
+  total = settings[category.value][currentStage].total;
+  remaining = total;
+
+  announced.clear();
+
+  status.textContent = "시험 준비";
+  message.textContent = "초기화되었습니다.";
+
+  updateClock();
+}
+
+// 종료
+function finishTimer() {
+  pauseTimer();
+
+  remaining = 0;
+  updateClock();
+
+  status.textContent = "시험 종료";
+  message.textContent = "시험 시간이 종료되었습니다.";
+
+  speak("시험 시간이 종료되었습니다.");
+}
+
+// 음성 테스트
+function testVoice() {
+  speak("바리스타 심사 타이머 음성 안내 테스트입니다.");
+}
+
+// 시험 유형 변경
+category.addEventListener("change", () => {
+  pauseTimer();
+  selectStage("prepare");
+});
+
+// 최초 화면 표시
+updateClock();
+
+// PWA 서비스 워커 등록
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("PWA 서비스 워커 등록 완료"))
+      .catch(error => console.error("서비스 워커 등록 실패:", error));
+  });
+}
+
+</script>
+</body>
+</html>
